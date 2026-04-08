@@ -35,3 +35,29 @@ async def cek_expired(context: ContextTypes.DEFAULT_TYPE):
 
     for nama, tanggal in akun:
         exp = datetime.datetime.strptime(tanggal, "%Y-%m-%d").date()
+        if exp - today == datetime.timedelta(days=1):
+            await context.bot.send_message(
+                chat_id=context.job.chat_id,
+                text=f"Besok akun {nama} expired!"
+            )
+
+async def reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+
+    context.job_queue.run_repeating(
+        cek_expired,
+        interval=3600,
+        first=10,
+        chat_id=chat_id
+    )
+
+    await update.message.reply_text("Reminder otomatis aktif")
+
+app = ApplicationBuilder().token(TOKEN).build()
+
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("add", add))
+app.add_handler(CommandHandler("list", listakun))
+app.add_handler(CommandHandler("reminder", reminder))
+
+app.run_polling()

@@ -34,4 +34,4 @@ async def cek_expired(context: ContextTypes.DEFAULT_TYPE):
     today = datetime.date.today()
 
     for nama, tanggal in akun:
-        exp = datetime.datetime.strptime(tanggal, "%
+        exp = datetime.datetime.strptime(tanggal, "%Y-%m-%d").date()

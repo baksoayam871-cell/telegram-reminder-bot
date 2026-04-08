@@ -1,13 +1,15 @@
+import os
+import datetime
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-TOKEN = "8780196053:AAHNfoh8ftmcgyrFb8-5xOupL6gs7Qa0tZk"
+TOKEN = os.getenv("BOT_TOKEN")
 
 akun = []
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Bot Reminder Akun\n\n"
+        "Bot Reminder Aktif\n\n"
         "/add namaakun YYYY-MM-DD\n"
         "/list"
     )
@@ -23,15 +25,13 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def listakun(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = "List akun:\n"
 
-    for a in akun:
-        text += f"{a[0]} - {a[1]}\n"
+    for nama, tanggal in akun:
+        text += f"{nama} - {tanggal}\n"
 
     await update.message.reply_text(text)
 
-app = ApplicationBuilder().token(TOKEN).build()
+async def cek_expired(context: ContextTypes.DEFAULT_TYPE):
+    today = datetime.date.today()
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("add", add))
-app.add_handler(CommandHandler("list", listakun))
-
-app.run_polling()
+    for nama, tanggal in akun:
+        exp = datetime.datetime.strptime(tanggal, "%

@@ -38,11 +38,21 @@ def save_users(users):
         json.dump(users, f)
 
 
-def register_user(user_id):
+def register_user(user):
+
     users = load_users()
-    if user_id not in users:
-        users.append(user_id)
-        save_users(users)
+
+    for u in users:
+        if u["id"] == user.id:
+            return
+
+    users.append({
+        "id": user.id,
+        "name": user.full_name,
+        "username": user.username
+    })
+
+    save_users(users)
 
 
 def is_admin(update: Update):
@@ -51,7 +61,7 @@ def is_admin(update: Update):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    register_user(update.effective_user.id)
+    register_user(update.effective_user)
 
     text = (
         "🤖 Bot by Yujin Store\n\n"
@@ -69,9 +79,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    if not is_admin(update):
-        return
 
     layanan = context.args[0]
     email = context.args[1]
@@ -94,9 +101,6 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def listakun(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if not is_admin(update):
-        return
-
     data = load_data()
 
     text = "List akun:\n"
@@ -108,9 +112,6 @@ async def listakun(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def expired(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    if not is_admin(update):
-        return
 
     today = datetime.date.today()
     data = load_data()
@@ -129,9 +130,6 @@ async def expired(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def besok(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if not is_admin(update):
-        return
-
     today = datetime.date.today()
     data = load_data()
 
@@ -148,9 +146,6 @@ async def besok(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    if not is_admin(update):
-        return
 
     data = load_data()
 
@@ -169,9 +164,6 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    if not is_admin(update):
-        return
 
     email = context.args[0]
 
@@ -204,9 +196,6 @@ async def reminder(context: ContextTypes.DEFAULT_TYPE):
 
 async def start_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if not is_admin(update):
-        return
-
     chat_id = update.effective_chat.id
 
     context.job_queue.run_repeating(
@@ -221,9 +210,6 @@ async def start_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if not is_admin(update):
-        return
-
     for job in context.job_queue.jobs():
         job.schedule_removal()
 
@@ -237,10 +223,13 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     users = load_users()
 
-    text = "User bot:\n\n"
+    text = "User yang pernah pakai bot:\n\n"
 
     for u in users:
-        text += f"{u}\n"
+
+        username = f"@{u['username']}" if u["username"] else "-"
+
+        text += f"{u['name']} | {username} | {u['id']}\n"
 
     await update.message.reply_text(text)
 

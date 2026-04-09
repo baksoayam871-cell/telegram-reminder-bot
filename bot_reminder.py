@@ -80,6 +80,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    user_id = update.effective_user.id
+
     layanan = context.args[0]
     email = context.args[1]
     tanggal = context.args[2]
@@ -88,6 +90,7 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = load_data()
 
     data.append({
+        "user_id": user_id,
         "layanan": layanan,
         "email": email,
         "tanggal": tanggal,
@@ -101,24 +104,32 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def listakun(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    user_id = update.effective_user.id
     data = load_data()
 
     text = "List akun:\n"
 
     for d in data:
-        text += f"{d['layanan']} | {d['email']} | {d['tanggal']} | {d['nomor']}\n"
+
+        if d["user_id"] == user_id:
+            text += f"{d['layanan']} | {d['email']} | {d['tanggal']} | {d['nomor']}\n"
 
     await update.message.reply_text(text)
 
 
 async def expired(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    user_id = update.effective_user.id
     today = datetime.date.today()
+
     data = load_data()
 
     text = "Expired hari ini:\n"
 
     for d in data:
+
+        if d["user_id"] != user_id:
+            continue
 
         exp = datetime.datetime.strptime(d["tanggal"], "%Y-%m-%d").date()
 
@@ -130,12 +141,17 @@ async def expired(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def besok(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    user_id = update.effective_user.id
     today = datetime.date.today()
+
     data = load_data()
 
     text = "Expired besok:\n"
 
     for d in data:
+
+        if d["user_id"] != user_id:
+            continue
 
         exp = datetime.datetime.strptime(d["tanggal"], "%Y-%m-%d").date()
 
@@ -147,11 +163,16 @@ async def besok(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    user_id = update.effective_user.id
     data = load_data()
 
     counts = {}
 
     for d in data:
+
+        if d["user_id"] != user_id:
+            continue
+
         layanan = d["layanan"]
         counts[layanan] = counts.get(layanan, 0) + 1
 
@@ -165,11 +186,15 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    user_id = update.effective_user.id
     email = context.args[0]
 
     data = load_data()
 
-    data = [d for d in data if d["email"] != email]
+    data = [
+        d for d in data
+        if not (d["email"] == email and d["user_id"] == user_id)
+    ]
 
     save_data(data)
 
@@ -181,17 +206,22 @@ async def reminder(context: ContextTypes.DEFAULT_TYPE):
     today = datetime.date.today()
     data = load_data()
 
-    text = "Reminder besok expired:\n"
+    for chat_id in context.job.data:
 
-    for d in data:
+        text = "Reminder besok expired:\n"
 
-        exp = datetime.datetime.strptime(d["tanggal"], "%Y-%m-%d").date()
+        for d in data:
 
-        if exp - today == datetime.timedelta(days=1):
-            text += f"{d['layanan']} {d['email']} | {d['nomor']}\n"
+            if d["user_id"] != chat_id:
+                continue
 
-    if text != "Reminder besok expired:\n":
-        await context.bot.send_message(chat_id=context.job.chat_id, text=text)
+            exp = datetime.datetime.strptime(d["tanggal"], "%Y-%m-%d").date()
+
+            if exp - today == datetime.timedelta(days=1):
+                text += f"{d['layanan']} {d['email']} | {d['nomor']}\n"
+
+        if text != "Reminder besok expired:\n":
+            await context.bot.send_message(chat_id=chat_id, text=text)
 
 
 async def start_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -202,7 +232,7 @@ async def start_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reminder,
         interval=18000,
         first=10,
-        chat_id=chat_id
+        data=[chat_id]
     )
 
     await update.message.reply_text("Reminder aktif (cek setiap 5 jam)")

@@ -9,14 +9,14 @@ DATA_FILE = "accounts.json"
 
 def load_data():
     try:
-        with open(DATA_FILE,"r") as f:
+        with open(DATA_FILE, "r") as f:
             return json.load(f)
     except:
         return []
 
 def save_data(data):
-    with open(DATA_FILE,"w") as f:
-        json.dump(data,f)
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -33,18 +33,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 )
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    layanan=context.args[0]
-    email=context.args[1]
-    tanggal=context.args[2]
-    nomor=context.args[3]
+    layanan = context.args[0]
+    email = context.args[1]
+    tanggal = context.args[2]
+    nomor = context.args[3]
 
-    data=load_data()
+    data = load_data()
 
     data.append({
-        "layanan":layanan,
-        "email":email,
-        "tanggal":tanggal,
-        "nomor":nomor
+        "layanan": layanan,
+        "email": email,
+        "tanggal": tanggal,
+        "nomor": nomor
     })
 
     save_data(data)
@@ -52,106 +52,110 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Akun + customer ditambahkan")
 
 async def listakun(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data=load_data()
+    data = load_data()
 
-    text="List akun:\n"
+    text = "List akun:\n"
 
     for d in data:
-        text+=f"{d['layanan']} | {d['email']} | {d['tanggal']} | {d['nomor']}\n"
+        text += f"{d['layanan']} | {d['email']} | {d['tanggal']} | {d['nomor']}\n"
 
     await update.message.reply_text(text)
 
 async def expired(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    today=datetime.date.today()
-    data=load_data()
+    today = datetime.date.today()
+    data = load_data()
 
-    text="Expired hari ini:\n"
+    text = "Expired hari ini:\n"
 
     for d in data:
-        exp=datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
+        exp = datetime.datetime.strptime(d["tanggal"], "%Y-%m-%d").date()
 
-        if exp==today:
-            text+=f"{d['layanan']} {d['email']} | WA: https://wa.me/{d['nomor']}\n"
+        if exp == today:
+            text += f"{d['layanan']} {d['email']} | https://wa.me/{d['nomor']}\n"
 
     await update.message.reply_text(text)
 
 async def besok(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    today=datetime.date.today()
-    data=load_data()
+    today = datetime.date.today()
+    data = load_data()
 
-    text="Expired besok:\n"
+    text = "Expired besok:\n"
 
     for d in data:
-        exp=datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
+        exp = datetime.datetime.strptime(d["tanggal"], "%Y-%m-%d").date()
 
-        if exp-today==datetime.timedelta(days=1):
-            text+=f"{d['layanan']} {d['email']} | WA: https://wa.me/{d['nomor']}\n"
+        if exp - today == datetime.timedelta(days=1):
+            text += f"{d['layanan']} {d['email']} | https://wa.me/{d['nomor']}\n"
 
     await update.message.reply_text(text)
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data=load_data()
+    data = load_data()
 
-    counts={}
+    counts = {}
 
     for d in data:
-        layanan=d["layanan"]
-        counts[layanan]=counts.get(layanan,0)+1
+        layanan = d["layanan"]
+        counts[layanan] = counts.get(layanan, 0) + 1
 
-    text="Statistik akun:\n"
+    text = "Statistik akun:\n"
 
-    for k,v in counts.items():
-        text+=f"{k}: {v}\n"
+    for k, v in counts.items():
+        text += f"{k}: {v}\n"
 
     await update.message.reply_text(text)
 
 async def remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    email=context.args[0]
+    email = context.args[0]
 
-    data=load_data()
+    data = load_data()
 
-    data=[d for d in data if d["email"]!=email]
+    data = [d for d in data if d["email"] != email]
 
     save_data(data)
 
     await update.message.reply_text("Akun dihapus")
 
-async def reminder(context: ContextTypes.DEFAULT_TYPE):
-    today=datetime.date.today()
-    data=load_data()
+async def reminder_job(context: ContextTypes.DEFAULT_TYPE):
+    today = datetime.date.today()
+    data = load_data()
 
-    text="Reminder besok expired:\n"
+    text = "Reminder besok expired:\n"
 
     for d in data:
-        exp=datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
+        exp = datetime.datetime.strptime(d["tanggal"], "%Y-%m-%d").date()
 
-        if exp-today==datetime.timedelta(days=1):
-            text+=f"{d['layanan']} {d['email']} | https://wa.me/{d['nomor']}\n"
+        if exp - today == datetime.timedelta(days=1):
+            text += f"{d['layanan']} {d['email']} | https://wa.me/{d['nomor']}\n"
 
-    if text!="Reminder besok expired:\n":
-        await context.bot.send_message(chat_id=context.job.chat_id,text=text)
+    if text != "Reminder besok expired:\n":
+        await context.bot.send_message(
+            chat_id=context.job.chat_id,
+            text=text
+        )
 
 async def start_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id=update.effective_chat.id
+
+    chat_id = update.effective_chat.id
 
     context.job_queue.run_repeating(
-        reminder,
+        reminder_job,
         interval=20,
-        first=10,
+        first=5,
         chat_id=chat_id
     )
 
     await update.message.reply_text("Reminder otomatis aktif")
 
-app=ApplicationBuilder().token(TOKEN).build()
+app = ApplicationBuilder().token(TOKEN).build()
 
-app.add_handler(CommandHandler("start",start))
-app.add_handler(CommandHandler("add",add))
-app.add_handler(CommandHandler("list",listakun))
-app.add_handler(CommandHandler("expired",expired))
-app.add_handler(CommandHandler("besok",besok))
-app.add_handler(CommandHandler("stats",stats))
-app.add_handler(CommandHandler("remove",remove))
-app.add_handler(CommandHandler("reminder",start_reminder))
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("add", add))
+app.add_handler(CommandHandler("list", listakun))
+app.add_handler(CommandHandler("expired", expired))
+app.add_handler(CommandHandler("besok", besok))
+app.add_handler(CommandHandler("stats", stats))
+app.add_handler(CommandHandler("remove", remove))
+app.add_handler(CommandHandler("reminder", start_reminder))
 
 app.run_polling()

@@ -20,31 +20,42 @@ def save_data(data):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Panel Akun Premium\n\n"
-        "/add layanan email YYYY-MM-DD\n"
-        "/list\n"
-        "/expired\n"
-        "/besok\n"
-        "/stats\n"
-        "/remove\n"
-        "/reminder"
-    )
+"""Panel Akun Premium
+
+/add layanan email YYYY-MM-DD nomor
+/list
+/expired
+/besok
+/stats
+/remove email
+/reminder
+"""
+)
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     layanan=context.args[0]
     email=context.args[1]
     tanggal=context.args[2]
+    nomor=context.args[3]
 
     data=load_data()
-    data.append({"layanan":layanan,"email":email,"tanggal":tanggal})
+
+    data.append({
+        "layanan":layanan,
+        "email":email,
+        "tanggal":tanggal,
+        "nomor":nomor
+    })
+
     save_data(data)
 
-    await update.message.reply_text("Akun ditambahkan")
+    await update.message.reply_text("Akun + customer ditambahkan")
 
 async def listakun(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data=load_data()
 
     text="List akun:\n"
+
     for d in data:
         text+=f"{d['layanan']} | {d['email']} | {d['tanggal']} | {d['nomor']}\n"
 
@@ -58,28 +69,23 @@ async def expired(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for d in data:
         exp=datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
+
         if exp==today:
-            text+=f"{d['layanan']} {d['email']}\n"
+            text+=f"{d['layanan']} {d['email']} | WA: https://wa.me/{d['nomor']}\n"
 
     await update.message.reply_text(text)
 
-async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    layanan=context.args[0]
-    email=context.args[1]
-    tanggal=context.args[2]
-    nomor=context.args[3]
-
+async def besok(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    today=datetime.date.today()
     data=load_data()
-    data.append({
-        "layanan":layanan,
-        "email":email,
-        "tanggal":tanggal,
-        "nomor":nomor
-    })
 
-    save_data(data)
+    text="Expired besok:\n"
 
-    await update.message.reply_text("Akun + customer ditambahkan")
+    for d in data:
+        exp=datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
+
+        if exp-today==datetime.timedelta(days=1):
+            text+=f"{d['layanan']} {d['email']} | WA: https://wa.me/{d['nomor']}\n"
 
     await update.message.reply_text(text)
 
@@ -87,11 +93,13 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data=load_data()
 
     counts={}
+
     for d in data:
         layanan=d["layanan"]
         counts[layanan]=counts.get(layanan,0)+1
 
     text="Statistik akun:\n"
+
     for k,v in counts.items():
         text+=f"{k}: {v}\n"
 
@@ -99,6 +107,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
     email=context.args[0]
+
     data=load_data()
 
     data=[d for d in data if d["email"]!=email]
@@ -115,8 +124,9 @@ async def reminder(context: ContextTypes.DEFAULT_TYPE):
 
     for d in data:
         exp=datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
+
         if exp-today==datetime.timedelta(days=1):
-            text+=f"{d['layanan']} {d['email']}\n"
+            text+=f"{d['layanan']} {d['email']} | https://wa.me/{d['nomor']}\n"
 
     if text!="Reminder besok expired:\n":
         await context.bot.send_message(chat_id=context.job.chat_id,text=text)

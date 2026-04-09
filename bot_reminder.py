@@ -9,7 +9,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 DATA_FILE = "accounts.json"
 USERS_FILE = "users.json"
 
-OWNER_ID = 8109114402
+ADMIN_ID = 8109114402
 
 
 def load_data():
@@ -45,12 +45,16 @@ def register_user(user_id):
         save_users(users)
 
 
+def admin_only(update: Update):
+    return update.effective_user.id == ADMIN_ID
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    user_id = update.effective_user.id
-    register_user(user_id)
+    register_user(update.effective_user.id)
 
     text = (
+        "🤖 Bot by Yujin Store\n\n"
         "Panel Akun Premium\n\n"
         "/add layanan email YYYY-MM-DD nomor\n"
         "/list\n"
@@ -66,6 +70,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not admin_only(update):
+        return
 
     layanan = context.args[0]
     email = context.args[1]
@@ -88,6 +95,9 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def listakun(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if not admin_only(update):
+        return
+
     data = load_data()
 
     text = "List akun:\n"
@@ -100,13 +110,15 @@ async def listakun(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def expired(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if not admin_only(update):
+        return
+
     today = datetime.date.today()
     data = load_data()
 
     text = "Expired hari ini:\n"
 
     for d in data:
-
         exp = datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
 
         if exp == today:
@@ -117,13 +129,15 @@ async def expired(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def besok(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if not admin_only(update):
+        return
+
     today = datetime.date.today()
     data = load_data()
 
     text = "Expired besok:\n"
 
     for d in data:
-
         exp = datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
 
         if exp - today == datetime.timedelta(days=1):
@@ -133,6 +147,9 @@ async def besok(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not admin_only(update):
+        return
 
     data = load_data()
 
@@ -151,6 +168,9 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not admin_only(update):
+        return
 
     email = context.args[0]
 
@@ -171,7 +191,6 @@ async def reminder(context: ContextTypes.DEFAULT_TYPE):
     text = "Reminder besok expired:\n"
 
     for d in data:
-
         exp = datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
 
         if exp - today == datetime.timedelta(days=1):
@@ -183,39 +202,30 @@ async def reminder(context: ContextTypes.DEFAULT_TYPE):
 
 async def start_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if not admin_only(update):
+        return
+
     chat_id = update.effective_chat.id
 
     context.job_queue.run_repeating(
         reminder,
-        interval=30,
-        first=5,
+        interval=18000,
+        first=10,
         chat_id=chat_id
     )
 
-    await update.message.reply_text("Reminder aktif")
+    await update.message.reply_text("Reminder aktif (cek setiap 5 jam)")
 
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not admin_only(update):
+        return
 
     for job in context.job_queue.jobs():
         job.schedule_removal()
 
     await update.message.reply_text("Reminder dimatikan")
-
-
-async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    if update.effective_user.id != OWNER_ID:
-        return
-
-    users = load_users()
-
-    text = "User bot:\n\n"
-
-    for u in users:
-        text += f"{u}\n"
-
-    await update.message.reply_text(text)
 
 
 app = ApplicationBuilder().token(TOKEN).build()
@@ -229,6 +239,5 @@ app.add_handler(CommandHandler("stats",stats))
 app.add_handler(CommandHandler("remove",remove))
 app.add_handler(CommandHandler("reminder",start_reminder))
 app.add_handler(CommandHandler("stop",stop))
-app.add_handler(CommandHandler("users",users))
 
 app.run_polling()

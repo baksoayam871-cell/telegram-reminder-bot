@@ -46,7 +46,7 @@ async def listakun(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text="List akun:\n"
     for d in data:
-        text+=f"{d['layanan']} | {d['email']} | {d['tanggal']}\n"
+        text+=f"{d['layanan']} | {d['email']} | {d['tanggal']} | {d['nomor']}\n"
 
     await update.message.reply_text(text)
 
@@ -63,16 +63,23 @@ async def expired(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(text)
 
-async def besok(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    today=datetime.date.today()
+async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    layanan=context.args[0]
+    email=context.args[1]
+    tanggal=context.args[2]
+    nomor=context.args[3]
+
     data=load_data()
+    data.append({
+        "layanan":layanan,
+        "email":email,
+        "tanggal":tanggal,
+        "nomor":nomor
+    })
 
-    text="Expired besok:\n"
+    save_data(data)
 
-    for d in data:
-        exp=datetime.datetime.strptime(d["tanggal"],"%Y-%m-%d").date()
-        if exp-today==datetime.timedelta(days=1):
-            text+=f"{d['layanan']} {d['email']}\n"
+    await update.message.reply_text("Akun + customer ditambahkan")
 
     await update.message.reply_text(text)
 

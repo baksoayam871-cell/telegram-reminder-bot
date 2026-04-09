@@ -192,14 +192,12 @@ async def start_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=chat_id
     )
 
-    await update.message.reply_text("Reminder aktif (tester 30 detik)")
+    await update.message.reply_text("Reminder aktif")
 
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    jobs = context.job_queue.get_jobs_by_name(str(update.effective_chat.id))
-
-    for job in jobs:
+    for job in context.job_queue.jobs():
         job.schedule_removal()
 
     await update.message.reply_text("Reminder dimatikan")
